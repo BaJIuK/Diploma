@@ -11,9 +11,7 @@ public class PointsNode {
     @NotNull
     private MatchedNode matchedNode;
     @NotNull
-    private List<Point> srcPoints = new ArrayList<>();
-    @NotNull
-    private List<Point> dstPoints = new ArrayList<>();
+    private List<List<PointPair>> homographies = new ArrayList<>();
 
     public PointsNode(@NotNull MatchedNode matchedNode) {
         this.matchedNode = matchedNode;
@@ -23,25 +21,27 @@ public class PointsNode {
     private void load() {
         try {
             Scanner input = new Scanner(new FileInputStream(matchedNode.getPointsFile()));
-            while (input.hasNext()) {
-                double x1 = Double.valueOf(input.next());
-                double y1 = Double.valueOf(input.next());
-                double x2 = Double.valueOf(input.next());
-                double y2 = Double.valueOf(input.next());
-                srcPoints.add(new Point(x1, y1));
-                dstPoints.add(new Point(x2, y2));
+            int all = input.nextInt();
+            for (int i = 0; i < all; i++) {
+                int pts = input.nextInt();input.nextLine();
+                List<PointPair> pairs = new ArrayList<>();
+                for (int j = 0; j < pts; j++) {
+                    double x1 = Double.valueOf(input.next());
+                    double y1 = Double.valueOf(input.next());
+                    double x2 = Double.valueOf(input.next());
+                    double y2 = Double.valueOf(input.next());
+                    pairs.add(new PointPair(new Point(x1, y1), new Point(x2, y2)));
+                }
+                homographies.add(pairs);
             }
+
         } catch (Throwable e) {
             e.printStackTrace();
         }
     }
 
-    public List<Point> getSrcPoints() {
-        return srcPoints;
-    }
-
-    public List<Point> getDstPoints() {
-        return dstPoints;
+    public List<List<PointPair>> getHomographies() {
+        return homographies;
     }
 
     public MatchedNode getMatchedNode() {

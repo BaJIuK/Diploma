@@ -22,7 +22,22 @@ public class Main {
         System.out.println(WORKING_DIR);
         makeRects(getSrcFileWithName("1.jpg"), getSrcFileWithName("2.jpg"));
         makeRects(getSrcFileWithName("2.jpg"), getSrcFileWithName("3.jpg"));
+        makeRects(getSrcFileWithName("3.jpg"), getSrcFileWithName("4.jpg"));
+        makeRects(getSrcFileWithName("4.jpg"), getSrcFileWithName("5.jpg"));
         makeRects(getSrcFileWithName("Photo1.jpg"), getSrcFileWithName("Photo2.jpg"));
+        makeRects(getSrcFileWithName("Photo2.jpg"), getSrcFileWithName("Photo3.jpg"));
+        makeRects(getSrcFileWithName("Photo3.jpg"), getSrcFileWithName("Photo4.jpg"));
+        makeRects(getSrcFileWithName("Photo4.jpg"), getSrcFileWithName("Photo5.jpg"));
+        makeRects(getSrcFileWithName("Photo5.jpg"), getSrcFileWithName("Photo6.jpg"));
+        makeRects(getSrcFileWithName("Photo6.jpg"), getSrcFileWithName("Photo7.jpg"));
+        makeRects(getSrcFileWithName("Photo7.jpg"), getSrcFileWithName("Photo8.jpg"));
+        makeRects(getSrcFileWithName("shot1.jpg"), getSrcFileWithName("shot2.jpg"));
+        makeRects(getSrcFileWithName("shot2.jpg"), getSrcFileWithName("shot3.jpg"));
+        makeRects(getSrcFileWithName("shot3.jpg"), getSrcFileWithName("shot4.jpg"));
+
+        makeRects(getSrcFileWithName("my1.jpg"), getSrcFileWithName("my2.jpg"));
+        makeRects(getSrcFileWithName("my2.jpg"), getSrcFileWithName("my3.jpg"));
+
     }
 
     private static void makeRects(@NotNull final String src, @NotNull final String dst) {

@@ -1,13 +1,11 @@
 package com.bajiuk.diplom.algo;
 
 import com.bajiuk.diplom.data.Point;
+import com.bajiuk.diplom.data.PointPair;
 import com.bajiuk.diplom.data.PointsNode;
 import com.bajiuk.diplom.image.ImageMaker;
-import com.bajiuk.diplom.image.shapes.Line;
-import com.bajiuk.diplom.image.shapes.Shape;
 import com.sun.istack.internal.NotNull;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class DistAlgo {
@@ -20,38 +18,41 @@ public class DistAlgo {
     }
 
     public void processAndSave() {
-        List<Point> srcPoints = pointsNode.getSrcPoints();
-        List<Point> dstPoints = pointsNode.getDstPoints();
 
         String src = pointsNode.getMatchedNode().getDataNode().getSrcImage();
         String dst = pointsNode.getMatchedNode().getDataNode().getDstImage();
 
-        ImageMaker imageMaker1 = new ImageMaker(src, dst);
-        ImageMaker imageMaker2 = new ImageMaker(dst, src);
+        ImageMaker maker = new ImageMaker(src, dst);
 
-        drawMinMaxpoint(imageMaker1, srcPoints);
-        drawMinMaxpoint(imageMaker2, dstPoints);
-    }
-
-    private void drawMinMaxpoint(ImageMaker imageMaker, List<Point> points) {
-        double minX = Double.MAX_VALUE;
-        double maxX = 0;
-        double minY = Double.MAX_VALUE;
-        double maxY = 0;
-
-        for (Point point : points) {
-            minX = Math.min(point.getX(), minX);
-            minY = Math.min(point.getY(), minY);
-            maxX = Math.max(point.getX(), maxX);
-            maxY = Math.max(point.getY(), maxY);
+        for (int i = 0; i < pointsNode.getHomographies().size(); i++) {
+            drawMinMaxpoint(maker, pointsNode.getHomographies().get(i));
         }
 
-        List<Shape> shapes = new ArrayList<>();
-        shapes.add(new Line(new Point(minX, minY), new Point(minX, maxY)));
-        shapes.add(new Line(new Point(minX, maxY), new Point(maxX, maxY)));
-        shapes.add(new Line(new Point(maxX, maxY), new Point(maxX, minY)));
-        shapes.add(new Line(new Point(maxX, minY), new Point(minX, minY)));
-        imageMaker.draw(shapes);
+        maker.writeImage();
+    }
+
+    private void drawMinMaxpoint(ImageMaker imageMaker, List<PointPair> points) {
+        double sx = 0;
+        double sy = 0;
+        double fx = 0;
+        double fy = 0;
+        for (int i = 0; i < points.size(); i++) {
+            PointPair a = points.get(i);
+            PointPair b = points.get((i + 1) % points.size());
+            imageMaker.drawSrcLine(new PointPair(a.getSrc(), b.getSrc()));
+            imageMaker.drawDstLine(new PointPair(a.getDst(), b.getDst()));
+            sx += a.getSrc().getX();
+            sy += a.getSrc().getY();
+            fx += a.getDst().getX();
+            fy += a.getDst().getY();
+        }
+
+        sx /= points.size();
+        sy /= points.size();
+        fx /= points.size();
+        fy /= points.size();
+
+        imageMaker.drawConnection(new Point(sx, sy), new Point(fx, fy));
     }
 
 }

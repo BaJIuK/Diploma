@@ -5,8 +5,10 @@ import random
 import numpy as np
 from scipy.spatial import ConvexHull
 
-MIN_DIST_PX = 50
+MIN_DIST_PX = 30
+MAX_ACCURACY_PX = 10
 ITER_COUNT = 1000
+MIN_ACC_NUM = 30
 
 def load():
     img1 = cv.imread(sys.argv[1], 0)  # first image
@@ -30,12 +32,11 @@ def setupMatcher():
 
 # Key point extractors
 def setupAlgoSurf():
-    return cv.xfeatures2d.SURF_create(5000)
+    return cv.xfeatures2d.SURF_create(300)
 
 
 def setupAlgoSift():
-    return cv.xfeatures2d.SIFT_create(5000)
-
+    return cv.xfeatures2d.SIFT_create(300)
 
 # Descriptors matchers
 def setupMatcherFlann():
@@ -55,9 +56,10 @@ def isMatchGood(best):
 
 
 def isPointGood(height1, height2, point1, point2):
-    part1 = 0.5
-    part2 = 0.5
-    return (height1 * part1 < point1.pt[1]) & (height2 * part2 > point2.pt[1])
+    part1 = 0.3
+    part2 = 0.7
+    return (height1 * part1 < point1.pt[1]) and (height2 * part2 > point2.pt[1]) and (point1.pt[1] > point2.pt[1])
+
 
 
 def getGoodMatches(matches):
@@ -85,7 +87,7 @@ def drawPreview(img1, img2, kp1, kp2, good):
 
 def getImageHeight(image):
     height, width = image.shape
-    return height
+    return height, width
 
 
 def getPoints(kp1, kp2, matches):
@@ -125,14 +127,14 @@ def checkConvexHull(points):
         hull = ConvexHull(points)
         return len(hull.vertices) == len(points)
     except:
-        return False
+        return True
 
 def getNumberOfGoodPoints(dst, transformedDst):
     okNum = 0
     value = 0.0
     for i in range(len(dst)):
         norm = cv.norm(np.array(dst[i]), np.array(transformedDst[i]))
-        if  norm < MIN_DIST_PX:
+        if  norm < MAX_ACCURACY_PX:
             okNum += 1
             value += norm
     return okNum, value
@@ -143,35 +145,117 @@ def getOnlyGoodPoints(src, dst, homography):
     newDst = []
     for i in range(len(dst)):
         norm = cv.norm(np.array(dst[i]), np.array(transformedDst[i]))
-        if  norm < MIN_DIST_PX:
+        if  norm < MAX_ACCURACY_PX:
             newSrc.append(src[i])
             newDst.append(dst[i])
     return newSrc, newDst
+
+def outputGoodHomographies(src, dst, homographies):
+    output = open(sys.argv[3], 'w')
+    output.write(str(len(homographies)) + "\n")
+    for h in homographies:
+        outSrc, outDst = getOnlyGoodPoints(src, dst, h)
+        output.write(str(len(outSrc)) + "\n")
+        for i in range(len(outSrc)):
+            output.write(str(outSrc[i][0]) + " " + str(outSrc[i][1]) + " " + str(outDst[i][0]) + " " + str(outDst[i][1]) + "\n")
+    output.close()
+
+def iteration(src, dst, partSrc, partDst):
+    if (len(partSrc) < 20):
+        return  0, 0, 0
+    sp, dp = getFourPoints(partSrc, partDst)
+    isOk = checkDistance(sp) & checkConvexHull(sp) & checkDistance(dp) & checkConvexHull(dp)
+    if (isOk == False) :
+        return 0, 0, 0
+
+    homography, status = cv.findHomography(sp, dp)
+
+    transformedDst = cv.perspectiveTransform(np.array([src]), homography)[0]
+    ok, num = getNumberOfGoodPoints(dst, transformedDst)
+    return ok, num, homography
+
+def getPointsForRegion(sx,sy,fx,fy,src, dst):
+    outSrc = []
+    outDst = []
+    for i in range(len(src)):
+        pt = src[i]
+        if (pt[0] >= sx and pt[0] <= fx and pt[1] >= sy and pt[1] <= fy):
+            outSrc.append(pt)
+            outDst.append(dst[i])
+    return  outSrc, outDst
+
+def partialRANSAC(src, dst, sx, sy, fx, fy):
+    bestHomography = 0
+    bestNum = 0
+    bestPrice = 0
+    i = 0
+    partSrc, partDst = getPointsForRegion(sx, sy, fx, fy, src, dst)
+    while i < 100:
+        i += 1
+        okNum, price, homography = iteration(src, dst, partSrc, partDst)
+
+        if (okNum > bestNum or (okNum == bestNum and price < bestPrice)):
+            bestNum = okNum
+            bestPrice = price
+            bestHomography = homography
+    if (bestNum != 0) :
+        topLeft = [sx, sy]
+        topRight = [fx, sy]
+        bottomRight = [fx, fy]
+        bottomLeft = [sx, fy]
+        points = [topLeft, topRight, bottomRight, bottomLeft]
+        destPoints = cv.perspectiveTransform(np.array([points]), bestHomography)[0]
+        return points, destPoints
+    return 0, 0
+
+def runQuadraticAlgo(src, dst, width, height):
+    px = 4
+    py = 16
+    tx = width / px
+    ty = height / py
+
+    all = []
+    for i in range(px):
+        for j in range(py):
+            sx = i * tx
+            sy = j * ty
+            p, dp = partialRANSAC(src, dst, sx, sy, sx + tx, sy + ty)
+            if (p != 0):
+                all.append([p,dp])
+    saveAll(all)
+
+def saveAll(all):
+    output = open(sys.argv[3], 'w')
+    output.write(str(len(all)) + "\n")
+    for item in all:
+        outSrc = item[0]
+        outDst = item[1]
+        output.write(str(len(outSrc)) + "\n")
+        for i in range(len(outSrc)):
+            output.write(
+                str(outSrc[i][0]) + " " + str(outSrc[i][1]) + " " + str(outDst[i][0]) + " " + str(outDst[i][1]) + "\n")
+    output.close()
 
 def mySpecialRANSAC(src, dst):
     bestHomography = 0
     bestNum = 0
     bestPrice = 0
     i = 0
+
+    goodHomographies = []
     while i < ITER_COUNT :
-        sp, dp = getFourPoints(src, dst)
-
-        # Checking distance & convex
-        isOk = checkDistance(sp) & checkConvexHull(sp) & checkDistance(dp) & checkConvexHull(dp)
-        if (isOk == False) :
-            i += 1
-            continue
-
-        homography, status = cv.findHomography(sp, dp)
-
-        transformedDst = cv.perspectiveTransform(np.array([src]), homography)[0]
-        okNum, price = getNumberOfGoodPoints(dst, transformedDst)
+        i += 1
+        okNum, price, homography = iteration(src, dst, src, dst)
 
         if (okNum > bestNum or (okNum == bestNum and price < bestPrice)):
             bestNum = okNum
             bestPrice = price
             bestHomography = homography
 
+        if (okNum > MIN_ACC_NUM) :
+            goodHomographies.append(homography)
+
+    outputGoodHomographies(src, dst, goodHomographies)
     return getOnlyGoodPoints(src, dst, bestHomography)
 
 def drawMatches(img1, img2, src, dst):
@@ -188,12 +272,14 @@ def drawMatches(img1, img2, src, dst):
 def main():
     (img1, img2) = load()
     kp1, kp2, des1, des2 = compute(setupAlgo(), img1, img2)
-    height1 = getImageHeight(img1)
-    height2 = getImageHeight(img2)
-    matches = makePoints(height1, height2, kp1, kp2, getGoodMatches(setupMatcher().knnMatch(des1, des2, 2)))
+    heightSrc, widthSrc = getImageHeight(img1)
+    heightDst, widthDst = getImageHeight(img2)
+    matches = makePoints(heightSrc, heightDst, kp1, kp2, getGoodMatches(setupMatcher().knnMatch(des1, des2, 2)))
     src, dst = getPoints(kp1, kp2, matches)
-    src, dst = mySpecialRANSAC(np.array(src), np.array(dst))
-    drawMatches(img1, img2, src, dst)
-    savePoints(src, dst)
+    runQuadraticAlgo(src, dst, widthSrc, heightSrc)
+    # src, dst = mySpecialRANSAC(np.array(src), np.array(dst))
+
+    # drawMatches(img1, img2, src, dst)
+    # savePoints(src, dst)
 
 main()
