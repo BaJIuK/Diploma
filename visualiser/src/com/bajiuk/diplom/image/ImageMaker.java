@@ -1,5 +1,6 @@
 package com.bajiuk.diplom.image;
 
+import com.bajiuk.diplom.Main;
 import com.bajiuk.diplom.image.shapes.Shape;
 import com.sun.istack.internal.NotNull;
 
@@ -11,12 +12,12 @@ import java.util.List;
 
 public class ImageMaker {
     @NotNull
-    private final String srcImage;
-    @NotNull
     private final BufferedImage image;
+    @NotNull
+    private final String outImageName;
 
-    public ImageMaker(@NotNull final String srcImage) {
-        this.srcImage = srcImage;
+    public ImageMaker(@NotNull final String srcImage, @NotNull final String dstImage) {
+        outImageName = getOutImageName(srcImage, dstImage);
         image = getImage(srcImage);
     }
 
@@ -40,10 +41,15 @@ public class ImageMaker {
 
     private void writeImage() {
         try {
-            File outputfile = new File(srcImage + ".png");
+            File outputfile = new File(outImageName);
             ImageIO.write(image, "png", outputfile);
         } catch (Throwable e) {
             throw new RuntimeException("Cannot save Image!");
         }
+    }
+
+    private static String getOutImageName(String src, String dst) {
+        return new File(Main.DST_DIR_IMAGES,  new File(src).getName() + "_" + new File(dst).getName() + ".png")
+                .getAbsolutePath();
     }
 }

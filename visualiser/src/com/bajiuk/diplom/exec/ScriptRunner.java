@@ -1,15 +1,18 @@
 package com.bajiuk.diplom.exec;
 
+import com.bajiuk.diplom.Main;
 import com.bajiuk.diplom.data.MatchedNode;
 import com.bajiuk.diplom.data.PointsNode;
 import com.sun.istack.internal.NotNull;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.Scanner;
 
 public class ScriptRunner {
 
-    private static final String SCRIPT = "python3 /Users/bajiuk/diplom/matcher/matcher.py %s %s %s";
+    private static final File PY = new File(Main.MATCHER_DIR, "matcher.py");
+    private static final String SCRIPT = "python3 " + PY.getAbsolutePath() + " %s %s %s";
 
     @NotNull
     private final MatchedNode matchedNode;

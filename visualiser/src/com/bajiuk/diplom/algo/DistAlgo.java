@@ -23,8 +23,11 @@ public class DistAlgo {
         List<Point> srcPoints = pointsNode.getSrcPoints();
         List<Point> dstPoints = pointsNode.getDstPoints();
 
-        ImageMaker imageMaker1 = new ImageMaker(pointsNode.getMatchedNode().getDataNode().getSrcImage());
-        ImageMaker imageMaker2 = new ImageMaker(pointsNode.getMatchedNode().getDataNode().getDstImage());
+        String src = pointsNode.getMatchedNode().getDataNode().getSrcImage();
+        String dst = pointsNode.getMatchedNode().getDataNode().getDstImage();
+
+        ImageMaker imageMaker1 = new ImageMaker(src, dst);
+        ImageMaker imageMaker2 = new ImageMaker(dst, src);
 
         drawMinMaxpoint(imageMaker1, srcPoints);
         drawMinMaxpoint(imageMaker2, dstPoints);

@@ -121,8 +121,11 @@ def checkDistance(points):
     return result
 
 def checkConvexHull(points):
-    hull = ConvexHull(points)
-    return len(hull.vertices) == len(points)
+    try:
+        hull = ConvexHull(points)
+        return len(hull.vertices) == len(points)
+    except:
+        return False
 
 def getNumberOfGoodPoints(dst, transformedDst):
     okNum = 0
@@ -190,7 +193,7 @@ def main():
     matches = makePoints(height1, height2, kp1, kp2, getGoodMatches(setupMatcher().knnMatch(des1, des2, 2)))
     src, dst = getPoints(kp1, kp2, matches)
     src, dst = mySpecialRANSAC(np.array(src), np.array(dst))
-    # drawMatches(img1, img2, src, dst)
+    drawMatches(img1, img2, src, dst)
     savePoints(src, dst)
 
 main()
